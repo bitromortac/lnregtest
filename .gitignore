@@ -1,0 +1,9 @@
+# python binaries
+*.pyc
+*.pyo
+*__pycache__*
+
+# development
+.idea/*
+.vscode/*
+venv/*
