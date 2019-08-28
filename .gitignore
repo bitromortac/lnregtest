@@ -1,3 +1,6 @@
+# temporary files
+*.log
+
 # python binaries
 *.pyc
 *.pyo
