@@ -83,7 +83,7 @@ $ cd lnregtest
 ```
 Run network:
 ```
-$ python3 run_network.py -h
+$ python3 lnregtest.py -h
 ```
 
 **Package mode**:
@@ -97,7 +97,7 @@ Run network:
 $ lnregtest -h
 ```
 
-Test if lnregestnet works
+Test if lnregest works
 -------------------------
 To run all tests, run
 `python3 -m unittest discover test` from the root folder.
