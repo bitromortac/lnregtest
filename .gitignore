@@ -7,3 +7,6 @@
 .idea/*
 .vscode/*
 venv/*
+
+# tests
+test/test_data
