@@ -1,10 +1,11 @@
 LN regtest network
 ==================
 
-Implements a lightning network for (python) integration testing based on a 
-bitcoin regtest network.
+Implements functioning lightning networks for (python) integration testing
+ operating on a bitcoin regtest network by running lightning nodes on different
+ ports.
 
-The simulated lightning network's size can have different shapes as defined
+The simulated lightning networks can have different shapes as defined
  in the `network_definitions` folder.
 
 An example of a graph (`star_ring`) with 7 nodes and 12 channels is shown 
