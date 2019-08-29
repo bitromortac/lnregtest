@@ -1,5 +1,5 @@
-LN regtest network
-==================
+lnregtest - lightning networks on bitcoin regtest
+=================================================
 
 Implements functioning lightning networks for (python) integration testing
  operating on a bitcoin regtest network by running lightning nodes on different
