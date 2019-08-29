@@ -7,7 +7,9 @@ with open('./lnregtest/__init__.py', 'r') as f:
     MATCH_EXPR = "__version__[^'\"]+(['\"])([^'\"]+)"
     VERSION = re.search(MATCH_EXPR, f.read()).group(2)
 
-# to package, run: python3 setup.py sdist bdist_wheel
+# to package, run:
+# pip install setuptools wheel sdist twine
+# python3 setup.py sdist bdist_wheel
 setuptools.setup(
     name="lnregtest",
     version=VERSION,
