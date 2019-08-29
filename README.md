@@ -116,3 +116,9 @@ Troubleshooting
 * bitcoind and lnd processes are not terminated:
   Sometimes it happens that the processes are not terminated correctly, so
   before you start new tests, make sure to do so manually.
+
+Related Projects
+----------------
+* Medium article on how regtest lightning networks can be set up: [bitstein-medium](https://medium.com/@bitstein/setting-up-a-bitcoin-lightning-network-test-environment-ab967167594a)
+* Dockerized lightning networks: [simverse](https://github.com/darwin/simverse)
+* Dockerized version for the medium article: [bitstein-test-env](https://github.com/JeffVandrewJr/bitstein-test-env)
