@@ -82,7 +82,7 @@ class RegtestNetwork(object):
             self.nodedata_folder = self.temp_dir.name
         else:
             self.nodedata_folder = os.path.join(
-                nodedata_folder, network_definition_location)
+                nodedata_folder, network_definition_suffix)
         logger.info('Runtime data resides in: %s', self.nodedata_folder)
 
         # initialize bitcoind
@@ -147,7 +147,6 @@ class RegtestNetwork(object):
             self.lnds_fill_wallets()
             time.sleep(WAIT_AFTER_FILLING_WALLETS)
             self.lnds_connect_open_channels()
-
         self.determine_channel_mapping()
 
         if self.from_scratch:
