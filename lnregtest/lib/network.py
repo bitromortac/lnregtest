@@ -147,6 +147,9 @@ class RegtestNetwork(object):
             self.lnds_fill_wallets()
             time.sleep(WAIT_AFTER_FILLING_WALLETS)
             self.lnds_connect_open_channels()
+            # finalize last channel
+            self.bitcoind.mine_blocks(3)
+            time.sleep(3)
         self.determine_channel_mapping()
 
         if self.from_scratch:
