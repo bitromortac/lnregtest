@@ -155,46 +155,47 @@ class TestMasterNode(unittest.TestCase):
         """
         Test that the view of a single node (the master node A) is consistent.
         """
-        view = self.testnet.master_node.getnetworkinfo()
-
-        fixture_view = \
+        networkinfo_is = self.testnet.master_node.getnetworkinfo()
+        logger.info(format_dict(networkinfo_is))
+        networkinfo_should = \
             {
                 "graph_diameter": 0,
-                "avg_out_degree": 3.142857142857143,
+                "avg_out_degree": 3.4285714285714284,
                 "max_out_degree": 6,
                 "num_nodes": 7,
-                "num_channels": 11,
-                "total_network_capacity": "48197520",
-                "avg_channel_size": 4381592.7272727275,
+                "num_channels": 12,
+                "total_network_capacity": "53247024",
+                "avg_channel_size": 4437252,
                 "min_channel_size": "2100000",
                 "max_channel_size": "6300000",
                 "median_channel_size_sat": "5049504",
                 "num_zombie_chans": "0"
             }
-        self.assertTrue(dict_comparison(fixture_view, view, show_diff=True))
+        self.assertTrue(dict_comparison(
+            networkinfo_should, networkinfo_is, show_diff=True))
 
     def test_fail_network_view_master_node(self):
         """
         Test that the view of the master node is inconsistent.
         """
-        view = self.testnet.master_node.getnetworkinfo()
-
-        fixture_view = \
+        networkinfo_is = self.testnet.master_node.getnetworkinfo()
+        logger.info(format_dict(networkinfo_is))
+        networkinfo_should = \
             {
                 "graph_diameter": 0,
-                "avg_out_degree": 3.142857142857143,
+                "avg_out_degree": 3.4285714285714284,
                 "max_out_degree": 6,
                 "num_nodes": 7,
-                "num_channels": 12,
-                "total_network_capacity": "48197520",
-                "avg_channel_size": 4381592.7272727275,
+                "num_channels": 11,
+                "total_network_capacity": "53247024",
+                "avg_channel_size": 4437252,
                 "min_channel_size": "2100000",
                 "max_channel_size": "6300000",
                 "median_channel_size_sat": "5049504",
                 "num_zombie_chans": "0"
             }
-        # note the output, which will show you where the difference occured
-        self.assertFalse(dict_comparison(fixture_view, view, show_diff=True))
+        self.assertFalse(dict_comparison(
+            networkinfo_should, networkinfo_is, show_diff=True))
 
 
 class TestRunFromBackground(unittest.TestCase):
