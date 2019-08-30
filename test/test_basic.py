@@ -71,16 +71,16 @@ class TestBasicNetwork(unittest.TestCase):
                 "A": {
                     "4": {
                         "remote_name": "B",
-                        "capacity": 3600000,
+                        "capacity": 4000000,
                         "local_balance": 400000,
-                        "remote_balance": 3190950,
+                        "remote_balance": 3590950,
                         "num_updates": 0,
                         "initiator": False
                     },
                     "1": {
                         "remote_name": "C",
-                        "capacity": 4500000,
-                        "local_balance": 3990950,
+                        "capacity": 5000000,
+                        "local_balance": 4490950,
                         "remote_balance": 500000,
                         "num_updates": 0,
                         "initiator": True
@@ -89,35 +89,35 @@ class TestBasicNetwork(unittest.TestCase):
                 "B": {
                     "4": {
                         "remote_name": "A",
-                        "capacity": 3600000,
-                        "local_balance": 3190950,
+                        "capacity": 4000000,
+                        "local_balance": 3590950,
                         "remote_balance": 400000,
                         "num_updates": 0,
                         "initiator": True
                     },
                     "5": {
                         "remote_name": "C",
-                        "capacity": 5049504,
-                        "local_balance": 89959,
+                        "capacity": 10000000,
+                        "local_balance": 5040455,
                         "remote_balance": 4950495,
                         "num_updates": 0,
                         "initiator": True
                     }
                 },
                 "C": {
-                    "5": {
-                        "remote_name": "B",
-                        "capacity": 5049504,
-                        "local_balance": 4950495,
-                        "remote_balance": 89959,
+                    "1": {
+                        "remote_name": "A",
+                        "capacity": 5000000,
+                        "local_balance": 500000,
+                        "remote_balance": 4490950,
                         "num_updates": 0,
                         "initiator": False
                     },
-                    "1": {
-                        "remote_name": "A",
-                        "capacity": 4500000,
-                        "local_balance": 500000,
-                        "remote_balance": 3990950,
+                    "5": {
+                        "remote_name": "B",
+                        "capacity": 10000000,
+                        "local_balance": 4950495,
+                        "remote_balance": 5040455,
                         "num_updates": 0,
                         "initiator": False
                     }
@@ -164,11 +164,11 @@ class TestMasterNode(unittest.TestCase):
                 "max_out_degree": 6,
                 "num_nodes": 7,
                 "num_channels": 12,
-                "total_network_capacity": "53247024",
-                "avg_channel_size": 4437252,
-                "min_channel_size": "2100000",
-                "max_channel_size": "6300000",
-                "median_channel_size_sat": "5049504",
+                "total_network_capacity": "87500000",
+                "avg_channel_size": 7291666.666666667,
+                "min_channel_size": "2500000",
+                "max_channel_size": "10000000",
+                "median_channel_size_sat": "8500000",
                 "num_zombie_chans": "0"
             }
         self.assertTrue(dict_comparison(

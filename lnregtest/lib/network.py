@@ -308,7 +308,7 @@ class RegtestNetwork(object):
                 node_instance.connect(node_pubkey, node_host)
 
                 # open channel
-                capacity = channel_data['capacity']
+                capacity = int(channel_data['capacity'])
                 total_relative = (channel_data['ratio_local'] +
                                   channel_data['ratio_remote'])
                 local_relative = \
@@ -316,10 +316,9 @@ class RegtestNetwork(object):
                 remote_relative = \
                     float(channel_data['ratio_remote']) / \
                     total_relative
-                local_sat = int(capacity * local_relative)
                 remote_sat = int(capacity * remote_relative)
                 info = node_instance.openchannel(
-                    node_pubkey, local_sat, remote_sat)
+                    node_pubkey, capacity, remote_sat)
 
                 # save funding txid, to later on get a channel mapping
                 self.channel_mapping[channel]['funding_txid'] = \
