@@ -1,10 +1,10 @@
 import os
 # time delay for each LN node startup for load balancing
-LOAD_BALANCING_LND_STARTUP_TIME_SEC = 3
+LOAD_BALANCING_LND_STARTUP_TIME_SEC = 2
 WAIT_AFTER_MINING_THREE = 0.5
-WAIT_AFTER_ALL_LND_STARTED = 10
+WAIT_AFTER_ALL_LND_STARTED = 5
 WAIT_AFTER_FILLING_WALLETS = 3
-WAIT_BEFORE_CLEANUP = 2
+WAIT_BEFORE_CLEANUP = 1
 WAIT_SYNC_BITCOIND = 1
 
 common_path = os.path.dirname(os.path.realpath(__file__))
