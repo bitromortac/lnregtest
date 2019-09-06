@@ -431,6 +431,7 @@ class RegtestNetwork(object):
                     'local_balance': int(channel['local_balance']),
                     'remote_balance': int(channel['remote_balance']),
                     'num_updates': int(channel['num_updates']),
+                    'commit_fee': int(channel['commit_fee']),
                     'initiator': bool(channel['initiator']),
                 }
                 # TODO: extend with more properties

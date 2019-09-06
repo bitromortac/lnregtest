@@ -72,6 +72,7 @@ class TestBasicNetwork(unittest.TestCase):
                     "4": {
                         "remote_name": "B",
                         "capacity": 4000000,
+                        "commit_fee": 9050,
                         "local_balance": 400000,
                         "remote_balance": 3590950,
                         "num_updates": 0,
@@ -80,6 +81,7 @@ class TestBasicNetwork(unittest.TestCase):
                     "1": {
                         "remote_name": "C",
                         "capacity": 5000000,
+                        "commit_fee": 9050,
                         "local_balance": 4490950,
                         "remote_balance": 500000,
                         "num_updates": 0,
@@ -90,6 +92,7 @@ class TestBasicNetwork(unittest.TestCase):
                     "4": {
                         "remote_name": "A",
                         "capacity": 4000000,
+                        "commit_fee": 9050,
                         "local_balance": 3590950,
                         "remote_balance": 400000,
                         "num_updates": 0,
@@ -98,6 +101,7 @@ class TestBasicNetwork(unittest.TestCase):
                     "5": {
                         "remote_name": "C",
                         "capacity": 10000000,
+                        "commit_fee": 9050,
                         "local_balance": 5040455,
                         "remote_balance": 4950495,
                         "num_updates": 0,
@@ -108,6 +112,7 @@ class TestBasicNetwork(unittest.TestCase):
                     "1": {
                         "remote_name": "A",
                         "capacity": 5000000,
+                        "commit_fee": 9050,
                         "local_balance": 500000,
                         "remote_balance": 4490950,
                         "num_updates": 0,
@@ -116,6 +121,7 @@ class TestBasicNetwork(unittest.TestCase):
                     "5": {
                         "remote_name": "B",
                         "capacity": 10000000,
+                        "commit_fee": 9050,
                         "local_balance": 4950495,
                         "remote_balance": 5040455,
                         "num_updates": 0,
@@ -133,7 +139,7 @@ class TestBasicNetwork(unittest.TestCase):
             logger.info("Complete assembled channel graph:")
             logger.info(format_dict(graph_dict))
             self.assertTrue(
-                dict_comparison(graph_dict, graph_fixture))
+                dict_comparison(graph_dict, graph_fixture, show_diff=True))
         finally:
             testnet.cleanup()
 
