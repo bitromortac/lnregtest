@@ -1,9 +1,9 @@
-lnregtest - lightning networks on bitcoin regtest
+lnregtest - Lightning Networks on Bitcoin regtest
 =================================================
 
-Implements functioning lightning networks for (python) integration testing
- operating on a bitcoin regtest network by running lightning nodes on different
- ports.
+Implements functioning lightning networks for (Python) integration testing 
+operating on a Bitcoin regtest network by running several lightning node 
+instances.
 
 The simulated lightning networks can have different shapes as defined
  in the `network_definitions` folder.
@@ -13,27 +13,20 @@ here (for initial channel balance details, have a look at
 `network_definitions/star_ring.py`):
 
 ```
-Star-like component:
-A -> B
-A -> C
-A -> D
-A -> E
-A -> F
-A -> G
-Ring-like component:
-B -> C
-C -> D
-D -> E
-E -> F
-F -> G
-G -> B
+Star-like component with channels (where A is the master node):
+A -> B, A -> C, A -> D, A -> E, A -> F, A -> G,
+Ring-like component with channels (which surrounds the master node):
+B -> C, C -> D, D -> E, E -> F, F -> G, G -> B
 ```
+This star and ring-like lightning network can then be used to test interactions
+with the network from the master node's perspective, like rebalancing channels,
+routing payments, sending payments and so on.
 
 Features
-----------------
+--------
 * No external python dependencies
-* Arbitrary lightning network graphs with a number of nodes ~10 (depends on 
-your resources)
+* Arbitrary lightning network graphs with up to number of nodes on the order of
+10 (depends on your resources)
 * LND support
 * Lightning graph state comparison
 * Restarting from already created networks
@@ -45,9 +38,10 @@ Planned features
 ----------------
 * Arbitrary lightning daemon binary detection (lnd, clightning, ...)
 * Time-dependent transaction series
+* Automatic sanity check of user defined networks
 
-Create your own network topology
----------------------------
+Creating your own network topology
+----------------------------------
 Networks of arbitrary shape can be defined as a python dictionary in the
 `network_definitions` folder. See the examples for a general structure.
 
@@ -75,7 +69,7 @@ in a special way by setting `defaultTrickleDelay = 1` in `config.go`.**
 The binaries bitcoind, bitcoin-cli, lnd, and lncli are expected to be found in 
 `$PATH`.
 
-You can use the tool in two different modes:
+You can use the tool in two different standalone modes:
 
 **Git repository mode**:
 ```
@@ -89,9 +83,9 @@ $ python3 lnregtest.py -h
 
 **Package mode**:
 ```
-$ virtualenv -p python3 venvs/lnregtest
-$ source venvs/lnregtest/bin/activate
-$ pip install lnregtest
+$ python3 -m venv venv
+$ source venv/bin/activate
+$ python3 -m pip install lnregtest
 ```
 Run network:
 ```
@@ -100,8 +94,7 @@ $ lnregtest -h
 
 Test if lnregest works
 -------------------------
-To run all tests, run
-`python3 -m unittest discover test` from the root folder.
+To run all tests, run `python3 -m unittest discover test` from the root folder.
 
 
 Troubleshooting
@@ -111,8 +104,8 @@ Troubleshooting
   simulation of a lightning network is memory and CPU intensive.** Each LN
   node needs some time to get up and running and consumes resources.
   Currently, the startup of each lnd node is delayed to distribute CPU load.
-  If you experience startup problems, increase `LOAD_BALANCING_LND_STARTUP_TIME_SEC`
-   in `lib.common`. The settings were tested on a quadcore processor and 8 GB of RAM.
+  If you experience startup problems, increase `LOAD_BALANCING_LND_STARTUP_TIME_SEC` 
+  in `lib.common`. The settings were tested on a quadcore processor and 8 GB of RAM.
 * bitcoind and lnd processes are not terminated:
   Sometimes it happens that the processes are not terminated correctly, so
   before you start new tests, make sure to do so manually.
