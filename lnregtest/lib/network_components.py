@@ -131,7 +131,7 @@ class RegTestBitcoind(object):
         :param command: list, contains CLI parameters
         :return: subprocess
         """
-        cmd = [self.bitcoincli_binary] + command
+        cmd = [self.bitcoincli_binary, '-datadir=' + self.bitcoind_data_dir] + command
         logger.debug(' '.join(cmd))
         proc = subprocess.run(
             cmd,
