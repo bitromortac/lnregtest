@@ -48,9 +48,8 @@ Networks of arbitrary shape can be defined as a python dictionary in the
 The requirements are:
 * Node A is the master node
 * Nodes are uniquely named by subsequent characters A, B, C, ...
-* Channels are uniquely numbered by incremental integers 1, 2, 3, ...
+* Channels are uniquely numbered by integers 1, 2, 3, ...
 * Ports must be set uniquely
-* Local balances must be larger than remote balances
 
 Testing other (python) projects
 -----------------------------

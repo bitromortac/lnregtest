@@ -15,9 +15,9 @@ from lnregtest.lib.common import (
     logger_config, WAIT_AFTER_MINING_THREE, WAIT_AFTER_ALL_LND_STARTED,
     WAIT_AFTER_FILLING_WALLETS, WAIT_BEFORE_CLEANUP
 )
-
 from lnregtest.lib.network_components import RegTestLND, RegTestBitcoind
 from lnregtest.lib.utils import format_dict
+from lnregtest.lib.graph_testing import graph_test
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -48,7 +48,7 @@ class RegtestNetwork(object):
             specifies if the network should be generated without restoring from
             a previous state
         """
-        # determine what network_definition is
+        # determine the network_definition
         if os.path.isabs(network_definition_location):
             # if absolute path, import from absolute path
             spec = importlib.util.spec_from_file_location(
@@ -89,6 +89,9 @@ class RegtestNetwork(object):
         self.from_scratch = from_scratch
         self.node_limit = node_limit
         self.bitcoind = RegTestBitcoind(self.nodedata_folder, binary_folder)
+
+        # check sanity of network definition
+        graph_test(network_definition_module.nodes)
 
         self.node_defintion = self.get_reduced_network_definition(
             network_definition_module)

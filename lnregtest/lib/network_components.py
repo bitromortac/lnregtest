@@ -42,6 +42,7 @@ class RegTestBitcoind(object):
             binary_folder = ''
         self.bitcoind_binary = os.path.join(binary_folder, 'bitcoind')
         self.bitcoincli_binary = os.path.join(binary_folder, 'bitcoin-cli')
+        # TODO: check if executables are available
 
         self.bitcoind_process = None
 
@@ -244,6 +245,8 @@ class RegTestLND(object):
             binary_folder = ''
         self.lnd_binary = os.path.join(binary_folder, 'lnd')
         self.lncli_binary = os.path.join(binary_folder, 'lncli')
+
+        # TODO: check if executables are available
 
         # file paths
         self.nodedata_folder = nodedata_folder
