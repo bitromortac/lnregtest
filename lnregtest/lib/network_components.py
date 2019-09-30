@@ -42,7 +42,13 @@ class RegTestBitcoind(object):
             binary_folder = ''
         self.bitcoind_binary = os.path.join(binary_folder, 'bitcoind')
         self.bitcoincli_binary = os.path.join(binary_folder, 'bitcoin-cli')
-        # TODO: check if executables are available
+
+        if shutil.which(self.bitcoind_binary) is None:
+            raise FileNotFoundError(
+                f"bitcoind executable not found: {self.bitcoind_binary}")
+        if shutil.which(self.bitcoincli_binary) is None:
+            raise FileNotFoundError(
+                f"bitcoin-cli executable not found: {self.bitcoincli_binary}")
 
         self.bitcoind_process = None
 
@@ -246,7 +252,13 @@ class RegTestLND(object):
         self.lnd_binary = os.path.join(binary_folder, 'lnd')
         self.lncli_binary = os.path.join(binary_folder, 'lncli')
 
-        # TODO: check if executables are available
+        # check if executables can be found
+        if shutil.which(self.lnd_binary) is None:
+            raise FileNotFoundError(
+                f"bitcoind executable not found: {self.lnd_binary}")
+        if shutil.which(self.lncli_binary) is None:
+            raise FileNotFoundError(
+                f"bitcoin-cli executable not found: {self.lncli_binary}")
 
         # file paths
         self.nodedata_folder = nodedata_folder

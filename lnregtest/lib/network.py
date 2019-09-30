@@ -224,8 +224,6 @@ class RegtestNetwork(object):
         :param network_definition: dict
         :return: dict
         """
-        # TODO: include check for network definition
-        # TODO: check if channel numbers are running numbers and not duplicate
         network = {}
         for node_name, node_instance in network_definition.nodes.items():
             node = {}
