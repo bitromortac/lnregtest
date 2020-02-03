@@ -33,12 +33,12 @@ Features
 * Abstraction of random identifiers (public keys, channel ids) to human readable
   identifiers
 * Library and command-line execution
+* Automatic sanity check of user defined networks
   
 Planned features
 ----------------
 * Arbitrary lightning daemon binary detection (lnd, clightning, ...)
 * Time-dependent transaction series
-* Automatic sanity check of user defined networks
 
 Creating your own network topology
 ----------------------------------
@@ -103,8 +103,7 @@ Troubleshooting
   simulation of a lightning network is memory and CPU intensive.** Each LN
   node needs some time to get up and running and consumes resources.
   Currently, the startup of each lnd node is delayed to distribute CPU load.
-  If you experience startup problems, increase `LOAD_BALANCING_LND_STARTUP_TIME_SEC` 
-  in `lib.common`. The settings were tested on a quadcore processor and 8 GB of RAM.
+  The settings were tested on a quadcore processor and 8 GB of RAM.
 * bitcoind and lnd processes are not terminated:
   Sometimes it happens that the processes are not terminated correctly, so
   before you start new tests, make sure to do so manually.
