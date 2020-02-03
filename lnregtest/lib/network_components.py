@@ -7,6 +7,8 @@ import time
 import os.path
 import logging
 import pathlib
+import threading
+import re
 
 from .node_config_templates import (
     lnd_config_template,
@@ -14,7 +16,7 @@ from .node_config_templates import (
 )
 from lnregtest.lib.utils import decode_byte_string_to_dict
 
-from lnregtest.lib.common import LOAD_BALANCING_LND_STARTUP_TIME_SEC, WAIT_SYNC_BITCOIND
+from lnregtest.lib.common import WAIT_SYNC_BITCOIND
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -138,7 +140,8 @@ class RegTestBitcoind(object):
         :param command: list, contains CLI parameters
         :return: subprocess
         """
-        cmd = [self.bitcoincli_binary, '-datadir=' + self.bitcoind_data_dir] + command
+        cmd = [self.bitcoincli_binary, '-datadir=' +
+               self.bitcoind_data_dir] + command
         logger.debug(' '.join(cmd))
         proc = subprocess.run(
             cmd,
@@ -244,7 +247,13 @@ class RegTestLND(object):
 
         self.version = None
         self.pubkey = None
+
+        # lnd process
         self.lnd_process = None
+        self.logs = []
+        self.logs_cond = threading.Condition(threading.RLock())
+        self.running = False
+        self.thread = None
 
         # take binaries from path, if no binary folder is given
         if binary_folder is None:
@@ -302,22 +311,85 @@ class RegTestLND(object):
         cmd = ' '.join(command)
         logger.info("%s: Starting lnd: %s ", self.name, cmd)
 
-        # if stdout/stderr is catched, this can interfere with the lnds
-        # and lead to unexpected behavior!!!
-        # start_new_session=True is added, such that a keyboard interrupt
-        # doesn't propagate to the nodes and we have the chance to exit
-        # cleanly
-        self.lnd_process = subprocess.Popen(
-            command,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
+        self.thread = threading.Thread(target=self.tail)
+        self.thread.daemon = False
 
-        # add delay for load balancing
-        time.sleep(LOAD_BALANCING_LND_STARTUP_TIME_SEC)
+        # we start nonblocking with Popen
+        self.lnd_process = subprocess.Popen(command, stdout=subprocess.PIPE)
+        self.thread.start()
+        self.running = True
+
+        # we consider lnd to be started, when it has scanned the chain
+        self.wait_for_log("Finished rescan")
 
         return self.lnd_process
+
+    # following code was taken from github.com/cdecker/lightning-integration
+    def tail(self):
+        """Tail the stdout of the process and remember it.
+        Stores the lines of output produced by the process in
+        self.logs and signals that a new line was read so that it can
+        be picked up by consumers.
+        """
+        try:
+            for line in iter(self.lnd_process.stdout.readline, ''):
+                if len(line) == 0:
+                    break
+                with self.logs_cond:
+                    self.logs.append(str(line.rstrip()))
+                    self.logs_cond.notifyAll()
+        except ValueError:
+            self.running = False
+
+    def wait_for_log(self, regex, offset=1000, timeout=60):
+        """Look for `regex` in the logs.
+        We tail the stdout of the process and look for `regex`,
+        starting from `offset` lines in the past. We fail if the
+        timeout is exceeded or if the underlying process exits before
+        the `regex` was found. The reason we start `offset` lines in
+        the past is so that we can issue a command and not miss its
+        effects.
+        """
+        logger.debug("%s: Waiting for '%s' in the logs", self.name, regex)
+        ex = re.compile(regex)
+        start_time = time.time()
+        pos = max(len(self.logs) - offset, 0)
+        initial_pos = len(self.logs)
+        while True:
+            if time.time() > start_time + timeout:
+                print("Can't find {} in logs".format(regex))
+                with self.logs_cond:
+                    for i in range(initial_pos, len(self.logs)):
+                        print("  " + self.logs[i])
+                if self.is_in_log(regex):
+                    print("(Was previously in logs!")
+                raise TimeoutError(
+                    'Unable to find "{}" in logs.'.format(regex))
+            elif not self.running:
+                print('Logs: {}'.format(self.logs))
+                raise ValueError('Process died while waiting for logs')
+
+            with self.logs_cond:
+                if pos >= len(self.logs):
+                    self.logs_cond.wait(1)
+                    continue
+
+                if ex.search(self.logs[pos]):
+                    logging.debug("%s: Found '%s' in logs", self.name, regex)
+                    return self.logs[pos]
+                pos += 1
+
+    def is_in_log(self, regex):
+        """Look for `regex` in the logs."""
+
+        ex = re.compile(regex)
+        for l in self.logs:
+            if ex.search(l):
+                logging.debug("Found '%s' in logs", regex)
+                return True
+
+        logging.debug("Did not find '%s' in logs", regex)
+        return False
 
     def stop(self):
         self.lncli(['stop'])
@@ -443,4 +515,3 @@ class RegTestLND(object):
         command = ['describegraph']
         _, networkinfo = self.lncli(command)
         return networkinfo
-
