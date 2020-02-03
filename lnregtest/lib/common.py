@@ -1,8 +1,8 @@
 import os
-# time delay for each LN node startup for load balancing
-LOAD_BALANCING_LND_STARTUP_TIME_SEC = 2
+
+# define waiting periods
 WAIT_AFTER_MINING_THREE = 0.5
-WAIT_AFTER_ALL_LND_STARTED = 5
+WAIT_AFTER_ALL_LND_STARTED = 1
 WAIT_AFTER_FILLING_WALLETS = 3
 WAIT_BEFORE_CLEANUP = 1
 WAIT_SYNC_BITCOIND = 1
