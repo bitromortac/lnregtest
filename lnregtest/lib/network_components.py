@@ -305,6 +305,7 @@ class RegTestLND(object):
                     '(from_scratch = False).'.format(self.name))
 
         command = [self.lnd_binary,
+                   '--trickledelay=1',
                    '--lnddir=' + self.lnd_data_dir,
                    '--noseedbackup']
 

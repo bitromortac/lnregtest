@@ -62,9 +62,6 @@ This package is also used in production in
 
 Setup
 -----
-**In order to have a complete immediate graph view, we need to compile LND
-in a special way by setting `defaultTrickleDelay = 1` in `config.go`.**
-
 The binaries bitcoind, bitcoin-cli, lnd, and lncli are expected to be found in 
 `$PATH`.
 
