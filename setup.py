@@ -21,6 +21,7 @@ setuptools.setup(
     url="https://github.com/bitromortac/lnregtest",
     packages=setuptools.find_packages(),
     install_requires=['wheel'],
+    setup_requires=['wheel'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
