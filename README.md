@@ -62,8 +62,8 @@ This package is also used in production in
 
 Setup
 -----
-The binaries bitcoind, bitcoin-cli, lnd, and lncli are expected to be found in 
-`$PATH`.
+The binaries bitcoind (v0.20.0), bitcoin-cli, lnd (v0.11.0), and lncli are expected to be found in 
+`$PATH`, e.g., put these binaries into your ~/bin folder.
 
 You can use the tool in two different standalone modes:
 
