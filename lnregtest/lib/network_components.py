@@ -148,6 +148,13 @@ class RegTestBitcoind(object):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+
+        # Handle errors of the bitcoin-cli call. Errors are expected
+        # to occur for getblockchaininfo when the daemon is not ready to
+        # take calls, therefore we exclude this case here.
+        if command[0] != 'getblockchaininfo' and proc.returncode != 0:
+            raise ChildProcessError(proc.stderr)
+
         return proc
 
     def getblockchaininfo(self):
@@ -218,6 +225,24 @@ class RegTestBitcoind(object):
         logger.debug("BTC: Generated new address %s.", address)
         return address
 
+    def getbalances(self):
+        """
+        Gets confirmed and unconfirmed balances.
+
+        :return: dict
+        """
+        logger.debug("BTC: Getting balances.")
+        command = ['getbalances']
+        result = self.bitcoincli(command)
+
+        # convert into a dict
+        balances = result.stdout.strip()
+        balances = balances.decode('utf-8')
+        balances = decode_byte_string_to_dict(balances)
+        logger.debug("BTC: Generated new address %s.", balances)
+
+        return balances
+
 
 class RegTestLND(object):
     """LND node abstraction."""
@@ -264,10 +289,10 @@ class RegTestLND(object):
         # check if executables can be found
         if shutil.which(self.lnd_binary) is None:
             raise FileNotFoundError(
-                f"bitcoind executable not found: {self.lnd_binary}")
+                f"lnd executable not found: {self.lnd_binary}")
         if shutil.which(self.lncli_binary) is None:
             raise FileNotFoundError(
-                f"bitcoin-cli executable not found: {self.lncli_binary}")
+                f"lncli executable not found: {self.lncli_binary}")
 
         # file paths
         self.nodedata_folder = nodedata_folder
@@ -516,3 +541,8 @@ class RegTestLND(object):
         command = ['describegraph']
         _, networkinfo = self.lncli(command)
         return networkinfo
+
+    def walletbalance(self):
+        command = ['walletbalance']
+        _, walletbalance = self.lncli(command)
+        return walletbalance
