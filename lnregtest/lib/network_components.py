@@ -409,8 +409,8 @@ class RegTestLND(object):
         """Look for `regex` in the logs."""
 
         ex = re.compile(regex)
-        for l in self.logs:
-            if ex.search(l):
+        for log in self.logs:
+            if ex.search(log):
                 logging.debug("Found '%s' in logs", regex)
                 return True
 
