@@ -25,4 +25,5 @@ bitcoind_config_template = \
     "zmqpubrawtx=tcp://127.0.0.1:28333\n" \
     "regtest=1\n" \
     "rpcuser=lnd\n" \
-    "rpcpassword=123456"
+    "rpcpassword=123456\n" \
+    "fallbackfee=0.00001000\n"
