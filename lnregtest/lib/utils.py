@@ -12,7 +12,7 @@ def format_dict(dictionary):
     return json.dumps(dictionary, indent=4)
 
 
-def decode_byte_string_to_dict(out):
+def decode_byte_string_to_dict_or_str(out):
     """
     Takes output from Process and converts it to a dict.
     :param out: str
@@ -22,7 +22,10 @@ def decode_byte_string_to_dict(out):
         json_data = json.loads(out)
         return json_data
     except json.decoder.JSONDecodeError:
-        return None
+        if type(out) == str:
+            return out.strip()
+        if type(out) == bytes:
+            return out.decode().strip()
 
 
 def dict_comparison(dict1, dict2, show_diff=False):
@@ -51,3 +54,19 @@ def dict_comparison(dict1, dict2, show_diff=False):
         print(''.join(difference))
 
     return are_equal
+
+
+def convert_short_channel_id_to_channel_id(blockheight, transaction, output) -> int:
+    """
+    Converts short channel id (blockheight:transaction:output) to a long integer channel id.
+
+    :param blockheight:
+    :param transaction: Number of transaction in the block.
+    :param output: Number of output in the transaction.
+    :return: channel id: Encoded integer number representing the channel,
+     can be decoded by :func:`lib.conversion.extract_short_channel_id_from_string`.
+    """
+    return blockheight << 40 | transaction << 16 | output
+
+# convert to bytes from hex
+bfh = bytes.fromhex
