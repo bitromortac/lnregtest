@@ -6,6 +6,7 @@ from lnregtest.lib.graph_testing import graph_test
 
 from lnregtest.network_definitions import (
     star_ring,
+    star_ring_electrum,
     default,
     mutated_default
 )
@@ -23,3 +24,6 @@ class GraphTests(TestCase):
 
     def test_mutated_default(self):
         graph_test(mutated_default.nodes)
+
+    def test_star_ring_electrum(self):
+        graph_test(star_ring_electrum.nodes)

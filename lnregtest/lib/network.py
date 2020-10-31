@@ -1,33 +1,41 @@
 """
 Module for implementing a bitcoin/lightning regtest network.
 """
-import time
-import logging
-import importlib
-import pickle
-import os
-import tempfile
 from collections import defaultdict
+import importlib
 import importlib.util
-
+import logging
+import os
+import pickle
+from pprint import pprint, pformat
+import tempfile
+import time
+from typing import Mapping, List, Optional, Union
 
 from lnregtest.lib.common import (
     logger_config, WAIT_AFTER_MINING_THREE, WAIT_AFTER_ALL_LND_STARTED,
     WAIT_AFTER_FILLING_WALLETS, WAIT_BEFORE_CLEANUP
 )
-from lnregtest.lib.network_components import RegTestLND, RegTestBitcoind
-from lnregtest.lib.utils import format_dict
+from lnregtest.lib.network_components import (Bitcoind, LND, LightningDaemon,
+                                              Electrum, ElectrumX)
+from lnregtest.lib.utils import format_dict, convert_short_channel_id_to_channel_id, bfh
 from lnregtest.lib.graph_testing import graph_test
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
+AVAILABLE_DAEMONS = {
+    'lnd': LND,
+    'electrum': Electrum,
+}
 
-class RegtestNetwork(object):
+
+class Network(object):
     """
     Wires all the network components together and controls the logic.
     """
-    def __init__(self, binary_folder=None, network_definition_location='star_ring',
+    def __init__(self, binary_folder=None,
+                 network_definition_location='star_ring',
                  nodedata_folder='', node_limit='C', from_scratch=True):
         """
         :param binary_folder:str:
@@ -85,16 +93,27 @@ class RegtestNetwork(object):
                 nodedata_folder, network_definition_suffix)
         logger.info('Runtime data resides in: %s', self.nodedata_folder)
 
-        # initialize bitcoind
-        self.from_scratch = from_scratch
-        self.node_limit = node_limit
-        self.bitcoind = RegTestBitcoind(self.nodedata_folder, binary_folder)
-
         # check sanity of network definition
         graph_test(network_definition_module.nodes)
 
-        self.node_defintion = self.get_reduced_network_definition(
+        # initialize bitcoind
+        self.from_scratch = from_scratch
+        self.node_limit = node_limit
+        self.bitcoind = Bitcoind(self.nodedata_folder, binary_folder)
+
+        # get network definition
+        self.network_definition = self.get_reduced_network_definition(
             network_definition_module)
+
+        # check if there's an electrum node
+        daemons = [n.get('daemon') for n in self.network_definition.values()]
+
+        # initialize electrumx
+        if 'electrum' in daemons:
+            logger.info(f"NET: Found electrum, need electrumx.")
+            self.electrumx = ElectrumX(self.nodedata_folder)
+        else:
+            self.electrumx = None
 
         # define empty node and channel mappings
         self.channel_mapping = defaultdict(dict)
@@ -102,17 +121,24 @@ class RegtestNetwork(object):
         self.node_mapping = {}
         self.node_mapping_inverse = {}
 
-        # initialize lnd nodes
+        # initialize lightning nodes
         self.running = False
-        self.lnd_nodes = {
-            node_name: RegTestLND(
+
+        self.ln_nodes: Mapping[str, Union[Electrum, LND]] = {}
+        for node_name, node_properties in self.network_definition.items():
+            if node_properties['daemon'] == 'electrum':
+                LNDaemon = Electrum
+            else:
+                LNDaemon = LND
+
+            self.ln_nodes[node_name] = LNDaemon(
                 name=node_name,
                 node_properties=node_properties,
-                nodedata_folder=self.nodedata_folder,
-                binary_folder=binary_folder
-            ) for node_name, node_properties in self.node_defintion.items()
-        }
-        self.master_node = self.lnd_nodes['A']
+                nodes_folder=self.nodedata_folder,
+                binary_folder=binary_folder,
+            )
+
+        self.master_node = self.ln_nodes['A']
 
         # define paths for node and channel mappings
         self.node_mapping_path = os.path.join(
@@ -134,25 +160,34 @@ class RegtestNetwork(object):
         # start bitcoind
         self.bitcoind.start(self.from_scratch)
 
+        if self.electrumx:
+            self.electrumx.start()
+
         if self.from_scratch:
             # fill the bitcoind wallet
             self.bitcoind.fill_addresses(10)
             self.bitcoind.mine_blocks(100)
 
-        self.lnds_start()
+        self.nodes_start()
 
         # delay to get all started up
         time.sleep(WAIT_AFTER_ALL_LND_STARTED)
         self.determine_node_mapping()
 
-        # channel-related things
+        # open channels and mine blocks for confirmation
         if self.from_scratch:
-            self.lnds_fill_wallets()
+            self.nodes_fill_wallets()
             time.sleep(WAIT_AFTER_FILLING_WALLETS)
-            self.lnds_connect_open_channels()
+            self.nodes_connect_open_channels()
             # finalize last channel
             self.bitcoind.mine_blocks(3)
             time.sleep(3)
+
+        # show state of lightning nodes
+        self.nodes_print_info()
+
+        logger.info(f"NET: node mapping\n{pformat(self.node_mapping)}")
+        # determine the mapping from channels to channel numbers
         self.determine_channel_mapping()
 
         if self.from_scratch:
@@ -161,21 +196,14 @@ class RegtestNetwork(object):
             self.read_mappings()
 
         # set fees on a per node basis
-        # self.lnds_set_fees()
+        # self.nodes_set_fees()
 
-        self.lnds_print_info()
-
-        # in the future it could be necessary to trigger updates
-        # such that all the graph data is propagated through the network
-        # self.master_node_connect_other_nodes()
-        self.master_node_disconnect_connect()
-        self.master_node_print_networkinfo()
         self.master_node_graph_view()
 
         self.running = True
 
         logger.info("\nLocal lightning network is running. Have fun!")
-        self.print_lncli_commands()
+        self.print_cli_commands()
 
     def run_once(self):
         """
@@ -212,7 +240,9 @@ class RegtestNetwork(object):
                 "Will keep network data, as nodedata_folder is given.")
 
     def stop_components(self):
-        self.lnds_stop()
+        self.nodes_stop()
+        if self.electrumx:
+            self.electrumx.stop()
         self.bitcoind.stop()
 
     def get_reduced_network_definition(self, network_definition):
@@ -228,6 +258,14 @@ class RegtestNetwork(object):
         for node_name, node_instance in network_definition.nodes.items():
             node = {}
             if node_name <= self.node_limit:
+                # figure out which lightning daemon should be used
+                daemon = node_instance.get('daemon')
+                if daemon in AVAILABLE_DAEMONS.keys():
+                    pass
+                else:
+                    daemon = 'lnd'
+
+                node['daemon'] = daemon
                 node['grpc_port'] = node_instance['grpc_port']
                 node['rest_port'] = node_instance['rest_port']
                 node['port'] = node_instance['port']
@@ -242,42 +280,42 @@ class RegtestNetwork(object):
                 network[node_name] = node
         return network
 
-    def print_lncli_commands(self):
+    def print_cli_commands(self):
         """
         Prints commands for controlling the lightning nodes directly from
         the shell.
         """
         logger.info('lncli commands:')
-        for node_name, node_instance in self.lnd_nodes.items():
-            node_instance.print_lncli_command()
+        for node_name, node_instance in self.ln_nodes.items():
+            node_instance.print_rpc_command()
 
-    def lnds_start(self):
+    def nodes_start(self):
         """
         Starts all LN nodes.
         """
-        for node_name, node_instance in self.lnd_nodes.items():
+        for node_name, node_instance in self.ln_nodes.items():
             node_instance.start(from_scratch=self.from_scratch)
 
-    def lnds_stop(self):
+    def nodes_stop(self):
         """
         Stops all LN nodes.
         """
-        for node_name, node_instance in self.lnd_nodes.items():
+        for node_name, node_instance in self.ln_nodes.items():
             try:
                 node_instance.stop()
             except Exception as e:
                 print(e)
 
-    def lnds_set_pubkeys(self):
+    def nodes_set_pubkeys(self):
         """
         Tells the LN nodes to set their node pub keys.
 
         This can only be done after the RPC is up.
         """
-        for node_name, node_instance in self.lnd_nodes.items():
+        for node_name, node_instance in self.ln_nodes.items():
             node_instance.set_node_pubkey()
 
-    def lnds_get_addresses(self):
+    def nodes_get_addresses(self):
         """
         Generates addresses in LN nodes' wallets.
 
@@ -285,30 +323,31 @@ class RegtestNetwork(object):
             List of addresses.
         """
         addresses = []
-        for node_name, node_instance in self.lnd_nodes.items():
-            info = node_instance.getaddress()
-            logger.info("%s: %s", node_name, info)
-            addresses.append(info['address'])
+        for node_name, node_instance in self.ln_nodes.items():
+            address = node_instance.getaddress()
+            logger.info("%s: %s", node_name, address)
+            addresses.append(address)
         return addresses
 
-    def lnds_connect_open_channels(self):
+    def nodes_connect_open_channels(self):
         """
         Connects LN nodes and opens channels between them.
         """
-        for node_name, node_instance in self.lnd_nodes.items():
+        for node_name, node_instance in self.ln_nodes.items():
             for channel, channel_data in \
-                    self.node_defintion[node_name]['channels'].items():
+                    self.network_definition[node_name]['channels'].items():
 
                 # connect nodes
                 node_to_connect = channel_data['to']
                 if node_to_connect > self.node_limit:
                     continue
-                node_pubkey = self.lnd_nodes[node_to_connect].pubkey
-                node_port = self.lnd_nodes[node_to_connect].lndport
-                node_host = 'localhost:{}'.format(node_port)
-                node_instance.connect(node_pubkey, node_host)
 
-                # open channel
+                # prepare connection info
+                node_pubkey = self.ln_nodes[node_to_connect].pubkey
+                node_port = self.ln_nodes[node_to_connect].lnport
+                node_host = 'localhost:{}'.format(node_port)
+
+                # prepare channel info
                 capacity = int(channel_data['capacity'])
                 total_relative = (channel_data['ratio_local'] +
                                   channel_data['ratio_remote'])
@@ -318,46 +357,49 @@ class RegtestNetwork(object):
                     float(channel_data['ratio_remote']) / \
                     total_relative
                 remote_sat = int(capacity * remote_relative)
-                info = node_instance.openchannel(
-                    node_pubkey, capacity, remote_sat)
+                local_sat = int(capacity * local_relative)
+
+                # connect and open channel
+                funding_txid = node_instance.connect_and_openchannel(
+                    node_pubkey,
+                    node_host,
+                    capacity,
+                    remote_sat
+                )
+                if isinstance(node_instance, Electrum):
+                    self.bitcoind.mine_blocks(3)
 
                 # save funding txid, to later on get a channel mapping
-                self.channel_mapping[channel]['funding_txid'] = \
-                    info['funding_txid']
+                self.channel_mapping[channel]['funding_txid'] = funding_txid
 
             # finalize channel creation
             self.bitcoind.mine_blocks(3)
             time.sleep(WAIT_AFTER_MINING_THREE)
 
-    def lnds_print_info(self):
+    def nodes_print_info(self):
         """
         Prints out essential information about the state of a node.
         """
-        for node_name, node_instance in self.lnd_nodes.items():
+        for node_name, node_instance in self.ln_nodes.items():
             info = node_instance.getinfo()
-            logger.info(
-                "%s: synced: %s, active: %s, inactive: %s, pending: %s",
-                node_name,
-                info['synced_to_chain'],
-                info['num_active_channels'],
-                info['num_inactive_channels'],
-                info['num_pending_channels']
+            logger.debug(
+                f"{node_name}:\n{pformat(info, indent=4)}"
             )
 
-    def lnds_fill_wallets(self):
+    def nodes_fill_wallets(self):
         """
         Funds LN nodes' wallets.
         """
-        addresses = self.lnds_get_addresses()
+        addresses = self.nodes_get_addresses()
         self.bitcoind.sendtoaddresses(addresses, amount=1)
         self.bitcoind.mine_blocks(6)
 
-    def lnds_set_fees(self):
+    def nodes_set_fees(self):
         """
         Updates fees for each node.
         """
-        for node_name, node_instance in self.lnd_nodes.items():
-            node_definition = self.node_defintion[node_name]
+        for node_name, node_instance in self.ln_nodes.items():
+            node_definition = self.network_definition[node_name]
             logger.info("%s: Update node policy.", node_name)
             node_instance.updatechanpolicy(
                 node_definition['base_fee_msat'],
@@ -373,8 +415,8 @@ class RegtestNetwork(object):
             self.node_mapping: node name (e.g. 'A') -> node pub key
             self.node_mapping_inverse: node pub key -> node name (e.g. 'A')
         """
-        self.lnds_set_pubkeys()
-        for node_name, node_instance in self.lnd_nodes.items():
+        self.nodes_set_pubkeys()
+        for node_name, node_instance in self.ln_nodes.items():
             self.node_mapping[node_name] = node_instance.pubkey
         self.node_mapping_inverse = {
             p: n for n, p in self.node_mapping.items()}
@@ -389,25 +431,35 @@ class RegtestNetwork(object):
             self.channel_mapping_inverse: channel_id ->
                 channel number (e.g. 3)
         """
+        logger.debug("NET: determine channel mapping")
+
         # create a temporary mapping from funding tx to the channel number
         map_ftx_to_cn = {
             f['funding_txid']: i for i, f in self.channel_mapping.items()}
 
-        for node_name, node_instance in self.lnd_nodes.items():
-            channel_info = node_instance.listchannels()
-            for channel in (channel_info['channels']):
+        for node_name, node_instance in self.ln_nodes.items():
+            # electrum takes a bit longer to reflect the channel state
+            if isinstance(node_instance, Electrum):
+                node_instance.wait_all_channels_open()
+
+            channel_states = node_instance.listchannels()
+
+            for channel in channel_states:
                 # map channel id to funding transaction
-                funding_txid, channel_point = \
-                    channel['channel_point'].split(':')
-                channel_number = map_ftx_to_cn[funding_txid]
+                channel_number = map_ftx_to_cn[channel.funding_txid]
                 self.channel_mapping[channel_number]['channel_id'] = \
-                    int(channel['chan_id'])
+                    int(channel.channel_id)
                 self.channel_mapping[channel_number]['channel_point'] = \
-                    int(channel_point)
+                    int(channel.outpoint)
+
+            logger.info(f"{node_name}: channel states {channel_states}")
 
         # also set the inverse mapping
         self.channel_mapping_inverse = {
             p['channel_id']: n for n, p in self.channel_mapping.items()}
+
+        logger.debug(
+            f"NET: channel mapping\n{pformat(self.channel_mapping, indent=4)}")
 
     def assemble_graph(self):
         """
@@ -421,23 +473,23 @@ class RegtestNetwork(object):
         """
         graph = {}
 
-        for node_name, node_instance in self.lnd_nodes.items():
+        for node_name, node_instance in self.ln_nodes.items():
             edges = {}
             channel_info = node_instance.listchannels()
-            for channel in (channel_info['channels']):
+            logger.debug(f"NET: channel info{channel_info}")
+            for channel in channel_info:
                 edge = {
                     'remote_name':
-                        self.node_mapping_inverse[channel['remote_pubkey']],
-                    'capacity': int(channel['capacity']),
-                    'local_balance': int(channel['local_balance']),
-                    'remote_balance': int(channel['remote_balance']),
-                    'num_updates': int(channel['num_updates']),
-                    'commit_fee': int(channel['commit_fee']),
-                    'initiator': bool(channel['initiator']),
+                        self.node_mapping_inverse[channel.remote_pubkey],
+                    'capacity': int(channel.capacity),
+                    'local_balance': int(channel.local_balance),
+                    'remote_balance': int(channel.remote_balance),
+                    'commit_fee': int(channel.commit_fee),
+                    'initiator': channel.initiator,
                 }
                 # TODO: extend with more properties
                 edges[self.channel_mapping_inverse[
-                    int(channel['chan_id'])]] = edge
+                    int(channel.channel_id)]] = edge
             graph[node_name] = edges
 
         # TODO: extend with feereport properties
@@ -466,45 +518,21 @@ class RegtestNetwork(object):
             self.channel_mapping_inverse = {
                 p['channel_id']: n for n, p in self.channel_mapping.items()}
 
-    def master_node_disconnect_connect(self):
-        """
-        Disconnects and connects all peers from master LN node (node A).
-        """
-        peers = [channel_values['to'] for channel, channel_values in
-                 self.node_defintion['A']['channels'].items()]
-        print(peers)
-        print(self.node_mapping)
-        for p in peers:
-            self.master_node.disconnect(self.node_mapping[p])
-            node_pubkey = self.lnd_nodes[p].pubkey
-            node_port = self.lnd_nodes[p].lndport
-            node_host = 'localhost:{}'.format(node_port)
-            self.master_node.connect(node_pubkey, node_host)
-
-    def master_node_connect_other_nodes(self):
-        """
-        Connects the master node with all other peers in the network.
-        """
-        peers = self.node_defintion.keys()
-        for p in peers:
-            node_pubkey = self.lnd_nodes[p].pubkey
-            node_port = self.lnd_nodes[p].lndport
-            node_host = 'localhost:{}'.format(node_port)
-            self.master_node.connect(node_pubkey, node_host)
-
     def master_node_graph_view(self):
         """
         Prints the graph view of the master node.
         """
-        graph = self.master_node.describegraph()
+        chan_infos = self.master_node.describegraph()
+        logger.debug(f'NET: {pformat(chan_infos)}')
         # extract relevant information from graph and map pub keys and
         # channel ids to human readable identifiers
         channel_list = []
-        for channel in graph['edges']:
-            node_name_1 = self.node_mapping_inverse[channel['node1_pub']]
-            node_name_2 = self.node_mapping_inverse[channel['node2_pub']]
-            channel_number = self.channel_mapping_inverse[
-                int(channel['channel_id'])]
+        for c in chan_infos:
+            # handle different master node instances differently due to
+            # different outputs of their graph methods
+            node_name_1 = self.node_mapping_inverse[c.node1_key]
+            node_name_2 = self.node_mapping_inverse[c.node2_key]
+            channel_number = self.channel_mapping_inverse[c.channel_id]
             if node_name_1 < node_name_2:
                 channel_list.append((node_name_1, node_name_2, channel_number))
             else:
@@ -527,11 +555,13 @@ class RegtestNetwork(object):
 
 if __name__ == '__main__':
     import logging.config
+
     logging.config.dictConfig(logger_config)
     logger.level = logging.INFO
 
-    testnet = RegtestNetwork(
-        network_definition_location='star_ring', node_limit='I', from_scratch=True)
+    testnet = Network(
+        network_definition_location='star_ring', node_limit='I',
+        from_scratch=True)
 
     try:
         testnet.run_nocleanup()

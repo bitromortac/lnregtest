@@ -3,13 +3,15 @@ import sys
 import unittest
 import logging
 
-from lnregtest.lib.network import RegtestNetwork
+from lnregtest.lib.network import Network
 from lnregtest.lib.utils import format_dict, dict_comparison
+from lnregtest.lib.common import logger_config
 
+import logging.config
+logging.config.dictConfig(logger_config)
 logger = logging.getLogger()
-logger.level = logging.INFO
-stream_handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(stream_handler)
+logger.setLevel(logging.DEBUG)
+logger.handlers[0].setLevel(logging.INFO)
 
 test_dir = os.path.dirname(os.path.realpath(__file__))
 test_data_dir = os.path.join(test_dir, 'test_data')
@@ -25,7 +27,7 @@ class TestBasicNetwork(unittest.TestCase):
         """
 
         # create network fixture
-        testnet_from_scratch = RegtestNetwork(
+        testnet_from_scratch = Network(
             nodedata_folder=test_data_dir,
             network_definition_location='star_ring',
             from_scratch=True, node_limit='C')
@@ -33,7 +35,7 @@ class TestBasicNetwork(unittest.TestCase):
         testnet_from_scratch.run_once()
 
         # use fixture to start up again
-        testnet_loaded = RegtestNetwork(
+        testnet_loaded = Network(
             nodedata_folder=test_data_dir,
             network_definition_location='star_ring',
             from_scratch=False, node_limit='C')
@@ -63,48 +65,44 @@ class TestBasicNetwork(unittest.TestCase):
         graph has to be assembled from all the nodes via the listchannels
         command.
         """
-        testnet = RegtestNetwork(
+        testnet = Network(
             network_definition_location='star_ring', from_scratch=True, node_limit='C')
 
         graph_fixture = \
             {
                 "A": {
-                    "4": {
-                        "remote_name": "B",
-                        "capacity": 4000000,
-                        "commit_fee": 9050,
-                        "local_balance": 400000,
-                        "remote_balance": 3590950,
-                        "num_updates": 0,
-                        "initiator": False
-                    },
                     "1": {
                         "remote_name": "C",
                         "capacity": 5000000,
-                        "commit_fee": 9050,
                         "local_balance": 4490950,
                         "remote_balance": 500000,
-                        "num_updates": 0,
+                        "commit_fee": 0,
                         "initiator": True
+                    },
+                    "4": {
+                        "remote_name": "B",
+                        "capacity": 4000000,
+                        "local_balance": 400000,
+                        "remote_balance": 3590950,
+                        "commit_fee": 0,
+                        "initiator": False
                     }
                 },
                 "B": {
                     "4": {
                         "remote_name": "A",
                         "capacity": 4000000,
-                        "commit_fee": 9050,
                         "local_balance": 3590950,
                         "remote_balance": 400000,
-                        "num_updates": 0,
+                        "commit_fee": 0,
                         "initiator": True
                     },
                     "5": {
                         "remote_name": "C",
                         "capacity": 10000000,
-                        "commit_fee": 9050,
                         "local_balance": 5040455,
                         "remote_balance": 4950495,
-                        "num_updates": 0,
+                        "commit_fee": 0,
                         "initiator": True
                     }
                 },
@@ -112,19 +110,17 @@ class TestBasicNetwork(unittest.TestCase):
                     "1": {
                         "remote_name": "A",
                         "capacity": 5000000,
-                        "commit_fee": 9050,
                         "local_balance": 500000,
                         "remote_balance": 4490950,
-                        "num_updates": 0,
+                        "commit_fee": 0,
                         "initiator": False
                     },
                     "5": {
                         "remote_name": "B",
                         "capacity": 10000000,
-                        "commit_fee": 9050,
                         "local_balance": 4950495,
                         "remote_balance": 5040455,
-                        "num_updates": 0,
+                        "commit_fee": 0,
                         "initiator": False
                     }
                 }
@@ -144,12 +140,12 @@ class TestBasicNetwork(unittest.TestCase):
             testnet.cleanup()
 
 
-class TestMasterNode(unittest.TestCase):
+class TestLNDMasterNode(unittest.TestCase):
     # this is a way to more efficiently test, by using one testnet for several
     # tests by employing run_nocleanup()
     @classmethod
     def setUpClass(cls):
-        cls.testnet = RegtestNetwork(
+        cls.testnet = Network(
             network_definition_location='star_ring', from_scratch=True, node_limit='H')
         cls.testnet.run_nocleanup()
 
@@ -215,7 +211,7 @@ class TestRunFromBackground(unittest.TestCase):
 
         $ lnregtestnet --nodedata_folder /path/to/lnregtestnet/test/test_data
         """
-        testnet = RegtestNetwork(
+        testnet = Network(
             network_definition_location='star_ring',
             nodedata_folder=test_data_dir,
             from_scratch=True, node_limit='Z')
