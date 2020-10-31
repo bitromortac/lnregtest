@@ -770,7 +770,7 @@ class LND(LightningDaemon):
             channel_states.append(ChannelState(
                 capacity=c['capacity'],
                 channel_id=c['chan_id'],
-                commit_fee=0,
+                commit_fee=c['commit_fee'],
                 funding_txid=funding_txid,
                 initiator=c['initiator'],
                 local_balance=c['local_balance'],

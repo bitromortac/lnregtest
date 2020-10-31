@@ -68,62 +68,63 @@ class TestElectrumMasterNode(unittest.TestCase):
         graph has to be assembled from all the nodes via the listchannels
         command.
         """
-        graph_fixture = {
-            "A": {
-                "1": {
-                    "remote_name": "B",
-                    "capacity": 4000000,
-                    "commit_fee": 0,
-                    "local_balance": 2105264,
-                    "remote_balance": 1894736,
-                    "initiator": True
+        graph_fixture = \
+            {
+                "A": {
+                    "1": {
+                        "remote_name": "B",
+                        "capacity": 4000000,
+                        "local_balance": 2105264,
+                        "remote_balance": 1894736,
+                        "commit_fee": 0,
+                        "initiator": True
+                    },
+                    "2": {
+                        "remote_name": "C",
+                        "capacity": 5000000,
+                        "local_balance": 2631579,
+                        "remote_balance": 2368421,
+                        "commit_fee": 0,
+                        "initiator": True
+                    }
                 },
-                "2": {
-                    "remote_name": "C",
-                    "capacity": 5000000,
-                    "commit_fee": 0,
-                    "local_balance": 2631579,
-                    "remote_balance": 2368421,
-                    "initiator": True
-                }
-            },
-            "B": {
-                "1": {
-                    "remote_name": "A",
-                    "capacity": 4000000,
-                    "commit_fee": 0,
-                    "local_balance": 1894736,
-                    "remote_balance": 2072684,
-                    "initiator": False
+                "B": {
+                    "3": {
+                        "remote_name": "C",
+                        "capacity": 100000,
+                        "local_balance": 90950,
+                        "remote_balance": 0,
+                        "commit_fee": 9050,
+                        "initiator": True
+                    },
+                    "1": {
+                        "remote_name": "A",
+                        "capacity": 4000000,
+                        "local_balance": 1894736,
+                        "remote_balance": 2072684,
+                        "commit_fee": 32580,
+                        "initiator": False
+                    }
                 },
-                "3": {
-                    "remote_name": "C",
-                    "capacity": 100000,
-                    "commit_fee": 0,
-                    "local_balance": 90950,
-                    "remote_balance": 0,
-                    "initiator": True
-                }
-            },
-            "C": {
-                "2": {
-                    "remote_name": "A",
-                    "capacity": 5000000,
-                    "commit_fee": 0,
-                    "local_balance": 2368421,
-                    "remote_balance": 2598999,
-                    "initiator": False
-                },
-                "3": {
-                    "remote_name": "B",
-                    "capacity": 100000,
-                    "commit_fee": 0,
-                    "local_balance": 0,
-                    "remote_balance": 90950,
-                    "initiator": False
+                "C": {
+                    "3": {
+                        "remote_name": "B",
+                        "capacity": 100000,
+                        "local_balance": 0,
+                        "remote_balance": 90950,
+                        "commit_fee": 9050,
+                        "initiator": False
+                    },
+                    "2": {
+                        "remote_name": "A",
+                        "capacity": 5000000,
+                        "local_balance": 2368421,
+                        "remote_balance": 2598999,
+                        "commit_fee": 32580,
+                        "initiator": False
+                    }
                 }
             }
-        }
 
         testnet = Network(
             network_definition_location='star_ring_electrum', from_scratch=True,

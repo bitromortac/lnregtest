@@ -76,7 +76,7 @@ class TestBasicNetwork(unittest.TestCase):
                         "capacity": 5000000,
                         "local_balance": 4490950,
                         "remote_balance": 500000,
-                        "commit_fee": 0,
+                        "commit_fee": 9050,
                         "initiator": True
                     },
                     "4": {
@@ -84,7 +84,7 @@ class TestBasicNetwork(unittest.TestCase):
                         "capacity": 4000000,
                         "local_balance": 400000,
                         "remote_balance": 3590950,
-                        "commit_fee": 0,
+                        "commit_fee": 9050,
                         "initiator": False
                     }
                 },
@@ -94,7 +94,7 @@ class TestBasicNetwork(unittest.TestCase):
                         "capacity": 4000000,
                         "local_balance": 3590950,
                         "remote_balance": 400000,
-                        "commit_fee": 0,
+                        "commit_fee": 9050,
                         "initiator": True
                     },
                     "5": {
@@ -102,7 +102,7 @@ class TestBasicNetwork(unittest.TestCase):
                         "capacity": 10000000,
                         "local_balance": 5040455,
                         "remote_balance": 4950495,
-                        "commit_fee": 0,
+                        "commit_fee": 9050,
                         "initiator": True
                     }
                 },
@@ -112,7 +112,7 @@ class TestBasicNetwork(unittest.TestCase):
                         "capacity": 5000000,
                         "local_balance": 500000,
                         "remote_balance": 4490950,
-                        "commit_fee": 0,
+                        "commit_fee": 9050,
                         "initiator": False
                     },
                     "5": {
@@ -120,7 +120,7 @@ class TestBasicNetwork(unittest.TestCase):
                         "capacity": 10000000,
                         "local_balance": 4950495,
                         "remote_balance": 5040455,
-                        "commit_fee": 0,
+                        "commit_fee": 9050,
                         "initiator": False
                     }
                 }
