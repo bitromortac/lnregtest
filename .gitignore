@@ -11,5 +11,13 @@
 .vscode/*
 venv/*
 
+# electrum deployment
+contrib/electrum
+contrib/electrumx
+.eggs
+build
+dist
+lnregtest.egg-info
+
 # tests
 test/test_data
