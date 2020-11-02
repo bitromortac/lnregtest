@@ -6,6 +6,7 @@ WAIT_AFTER_ALL_LND_STARTED = 1
 WAIT_AFTER_FILLING_WALLETS = 3
 WAIT_BEFORE_CLEANUP = 1
 WAIT_SYNC_BITCOIND = 1
+WAIT_SYNC_ELECTRUMX = 1
 
 common_path = os.path.dirname(os.path.realpath(__file__))
 root_path = os.path.join(common_path, '../../')

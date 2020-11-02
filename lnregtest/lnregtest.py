@@ -1,7 +1,7 @@
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import logging.config
 
-from lnregtest.lib.network import RegtestNetwork
+from lnregtest.lib.network import Network
 from lnregtest.lib.common import logger_config
 from lnregtest import __version__
 
@@ -11,7 +11,7 @@ logging.config.dictConfig(logger_config)
 def main():
     opts = parse_args()
 
-    testnet = RegtestNetwork(
+    testnet = Network(
         from_scratch=opts.from_scratch,
         node_limit=opts.node_limit,
         network_definition_location=opts.network_definition,
@@ -49,9 +49,9 @@ def parse_args():
              'the runtime data. Otherwise, if an absolute path is given, '
              'the runtime data is stored there and can be restarted.')
     parser.add_argument(
-        "-v",
-        "--version",
-        action="version",
+        '--version',
+        '-v',
+        action='version',
         version="%(prog)s " + __version__)
 
     return parser.parse_args()

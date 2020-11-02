@@ -2,6 +2,8 @@
 Module can be used to check if graphs are defined in the correct convention.
 """
 
+from typing import Dict
+
 
 def graph_test(nodes):
     """
@@ -15,6 +17,24 @@ def graph_test(nodes):
     test_node_names_alphabetical(nodes)
     test_channel_numbers_unique(channel_numbers)
     test_ports(nodes)
+    test_allowed_node_implementations(nodes)
+
+
+def test_allowed_node_implementations(nodes: Dict[str, Dict]):
+    """
+    Tests if the daemon fields in the node definitions is from the
+    supported set of daemons.
+    """
+    allowed_nodes = {None, 'electrum', 'lnd'}  # None is lnd default
+    present_nodes = set()
+    for n in nodes.values():
+        present_nodes.add(n.get('daemon'))
+    for pn in present_nodes:
+        if pn not in allowed_nodes:
+            raise ValueError(
+                f"Error in daemon field of graph definition, "
+                f"should be one of {allowed_nodes}, is {pn}.")
+
 
 
 def get_channel_numbers(nodes):
