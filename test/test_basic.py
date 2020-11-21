@@ -1,7 +1,7 @@
+import asyncio
 import os
-import sys
 import unittest
-import logging
+import time
 
 from lnregtest.lib.network import Network
 from lnregtest.lib.utils import format_dict, dict_comparison
@@ -199,6 +199,25 @@ class TestLNDMasterNode(unittest.TestCase):
         self.assertFalse(dict_comparison(
             networkinfo_should, networkinfo_is, show_diff=True))
 
+    def test_async_channel_open(self):
+        """Tests the asyncio rpc api for channel creation."""
+        networkinfo_before = self.testnet.master_node.getnetworkinfo()
+        self.assertEqual(12, networkinfo_before['num_channels'])
+
+        # open channel with async method
+        partner_pubkey = self.testnet.node_mapping['B']
+        coro = self.testnet.master_node._a_openchannel(
+            partner_pubkey,
+            100000,
+            0
+        )
+        asyncio.run(coro)
+        self.testnet.bitcoind.mine_blocks(3)
+        self.testnet.master_node.wait_for_log("Broadcasting")
+
+        networkinfo_after = self.testnet.master_node.getnetworkinfo()
+        self.assertEqual(13, networkinfo_after['num_channels'])
+
 
 class TestRunFromBackground(unittest.TestCase):
     def dummy_test_run_from_background(self):
@@ -219,4 +238,3 @@ class TestRunFromBackground(unittest.TestCase):
         # do tests
         testnet.master_node_print_networkinfo()
         testnet.master_node_graph_view()
-

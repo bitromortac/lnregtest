@@ -1,7 +1,9 @@
 """
 Network components for the bitcoin/lightning regtest network.
 """
+import asyncio
 from abc import ABC, abstractmethod
+from functools import wraps
 import subprocess
 import shutil
 import time
@@ -576,9 +578,8 @@ class LightningDaemon(ABC):
     def listchannels(self) -> List[ChannelState]:
         pass
 
-    def rpc(self, command):
-        """
-        Invokes the rpc command line interface for the LN server.
+    def rpc(self, command: List[str]) -> (int, dict):
+        """Invokes the rpc command line interface for the LN server.
 
         :param command: list of command line arguments
         :return:
@@ -594,12 +595,36 @@ class LightningDaemon(ABC):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
-        dict_str = decode_byte_string_to_dict_or_str(proc.stdout)
+        stdout_dict = decode_byte_string_to_dict_or_str(proc.stdout)
+        logger.debug("%s: %s", self.name, stdout_dict)
+
         if proc.returncode:
             logger.error("%s: %s", self.name, proc.stderr)
-        logger.debug("%s: %s", self.name, dict_str)
 
-        return proc.returncode, dict_str
+        return proc.returncode, stdout_dict
+
+    async def async_grpc(self, command: List[str]) -> (int, dict):
+        """Async implementation of self.rpc."""
+
+        command = list(map(str, command))
+        cmd = ' '.join(self.rpc_command + command)
+        logger.debug('%s: %s.', self.name, cmd)
+
+        proc = await asyncio.create_subprocess_shell(
+            cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE)
+
+        stdout, stderr = await proc.communicate()
+
+        stdout_dict = decode_byte_string_to_dict_or_str(stdout)
+        logger.debug("%s: %s", self.name, stdout_dict)
+
+        stderr_dict = decode_byte_string_to_dict_or_str(stderr)
+        if proc.returncode:
+            logger.error("%s: %s", self.name, stderr_dict)
+
+        return proc.returncode, stdout_dict
 
 
 class LND(LightningDaemon):
@@ -642,8 +667,7 @@ class LND(LightningDaemon):
         ]
 
     def start(self, from_scratch=True):
-        """
-        Start an lnd node.
+        """Start an LND node.
 
         :param from_scratch: bool
         :return:
@@ -687,17 +711,13 @@ class LND(LightningDaemon):
         # TODO: if this fails, force stop
 
     def print_rpc_command(self):
-        """
-        Prints the lncli command to use in the shell for testing.
-        """
+        """Prints the lncli command to use in the shell for testing."""
         cmd = ' '.join(self.rpc_command)
         logger.info("%s:", self.name)
         logger.info(cmd)
 
     def setup_datadir(self):
-        """
-        Sets up the lnd data folder.
-        """
+        """Sets up the lnd data folder."""
         pathlib.Path(self.data_dir).mkdir(parents=True, exist_ok=True)
         config = lnd_config_template.format(
             name=self.name,
@@ -712,9 +732,7 @@ class LND(LightningDaemon):
             f.write(config)
 
     def clear_directory(self):
-        """
-        Deletes the lnd data directory of this node.
-        """
+        """Deletes the lnd data directory of this node."""
         logger.debug("%s: Cleaning up lnd data directory.", self.name)
         try:
             shutil.rmtree(self.data_dir)
@@ -735,11 +753,19 @@ class LND(LightningDaemon):
         returncode, info = self.rpc(['connect', address])
         return info
 
+    # TODO: somehow unify sync and async apis
     def _openchannel(self, pubkey, local_sat, remote_sat):
         logger.info("%s: Open channel to %s", self.name, pubkey)
         command = ['openchannel', '--min_confs', '0', pubkey, local_sat,
                    remote_sat]
         returncode, info = self.rpc(command)
+        return info
+
+    async def _a_openchannel(self, pubkey, local_sat, remote_sat):
+        logger.info("%s: Async open channel to %s", self.name, pubkey)
+        command = ['openchannel', '--min_confs', '0', pubkey, local_sat,
+                   remote_sat]
+        returncode, info = await self.async_grpc(command)
         return info
 
     def connect_and_openchannel(self, pubkey, host, local_sat, remote_sat):
@@ -801,8 +827,11 @@ class LND(LightningDaemon):
         channels = []
         for c in networkinfo['edges']:
             # construct channel info
-            channel_info = ChannelInfo(node1_key=c['node1_pub'], node2_key=c['node2_pub'],
-                                       channel_id=int(c['channel_id']))
+            channel_info = ChannelInfo(
+                node1_key=c['node1_pub'],
+                node2_key=c['node2_pub'],
+                channel_id=int(c['channel_id'])
+            )
             channels.append(channel_info)
         return channels
 
@@ -932,8 +961,9 @@ class Electrum(LightningDaemon):
         returncode, address = self.rpc(['getunusedaddress'])
         return address
 
-    def connect_and_openchannel(self, pubkey, host, local_sat, remote_sat) -> str:
-        self._wait_for_funds((local_sat + remote_sat) / 1E8)
+    def connect_and_openchannel(self, pubkey, host, local_sat, remote_sat) \
+            -> str:
+        self._wait_for_funds()
         logger.info("%s: Open channel to %s@%s", self.name, pubkey, host)
         command = ['open_channel', '--push_amount', remote_sat / 1E8,
                    f"{pubkey}@{host}", local_sat / 1E8]
@@ -941,12 +971,13 @@ class Electrum(LightningDaemon):
         funding_txid = info.split(':')[0]
         return funding_txid
 
-    def _wait_for_funds(self, amount_btc: float):
+    def _wait_for_funds(self):
         logger.info(f"{self.name}: waiting for funds")
         while True:
             time.sleep(0.5)
             _, balance = self.rpc(['getbalance'])
-            if float(balance['confirmed']) > 0 and balance.get('unconfirmed', None) is None:
+            if (float(balance['confirmed']) > 0 and
+                    balance.get('unconfirmed', None) is None):
                 break
 
     def wait_all_channels_open(self):
@@ -959,7 +990,8 @@ class Electrum(LightningDaemon):
                     # if not all channels are open, wait
                     if c.state != 'OPEN':
                         raise Exception
-            except:
+            except Exception as e:
+                logger.exception(e)
                 continue
 
             # all channels are open
@@ -988,7 +1020,8 @@ class Electrum(LightningDaemon):
             # the integer representation
             try:
                 block, trans, out = map(int, c['short_channel_id'].split('x'))
-                chan_id = convert_short_channel_id_to_channel_id(block, trans, out)
+                chan_id = convert_short_channel_id_to_channel_id(
+                    block, trans, out)
             except AttributeError:
                 chan_id = None
 
@@ -1036,7 +1069,11 @@ class Electrum(LightningDaemon):
                 blockheight, transaction, output)
 
             # construct channel info
-            channel_info = ChannelInfo(node1_key=c['node1_id'], node2_key=c['node2_id'], channel_id=channel_id)
+            channel_info = ChannelInfo(
+                node1_key=c['node1_id'],
+                node2_key=c['node2_id'],
+                channel_id=channel_id
+            )
             channels.append(channel_info)
         return channels
 
