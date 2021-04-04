@@ -366,8 +366,9 @@ class Network(object):
                     capacity,
                     remote_sat
                 )
-                if isinstance(node_instance, Electrum):
-                    self.bitcoind.mine_blocks(3)
+                self.bitcoind.mine_blocks(3)
+                # TODO: wait for lnd wallet to be synced
+                time.sleep(1)
 
                 # save funding txid, to later on get a channel mapping
                 self.channel_mapping[channel]['funding_txid'] = funding_txid
