@@ -685,7 +685,8 @@ class LND(LightningDaemon):
         command = [self.server_binary,
                    '--trickledelay=1',
                    '--lnddir=' + self.data_dir,
-                   '--noseedbackup']
+                   '--noseedbackup',
+                   '--externalip=localhost:' + str(self.lnport)]
 
         cmd = ' '.join(command)
         logger.info("%s: Starting lnd: %s ", self.name, cmd)
@@ -894,6 +895,7 @@ class Electrum(LightningDaemon):
 
         self.rpc(['--offline', 'create'])
         self.rpc(['--offline', 'setconfig', 'log_to_file', 'true'])
+        self.rpc(['--offline', 'setconfig', 'use_gossip', 'true'])
         self.rpc(['--offline', 'setconfig', 'lightning_listen',
                   'localhost:' + str(self.lnport)])
         self.rpc(['--offline', 'setconfig', 'oneserver', 'true'])
