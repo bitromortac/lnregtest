@@ -117,6 +117,8 @@ class Bitcoind(object):
         # start and wait
         self.start_bitcoind_process()
         self.block_until_started()
+        if from_scratch:
+            self.create_wallet()
         logger.info("BTC: Bitcoind started.")
 
     def setup_bitcoinddir(self):
@@ -128,6 +130,12 @@ class Bitcoind(object):
 
         with open(self.bitcoind_config_file, 'w') as f:
             f.write(config)
+
+    def create_wallet(self):
+        """
+        Creates a new wallet for bitcoind.
+        """
+        self.bitcoincli(['createwallet', 'default'])
 
     def start_bitcoind_process(self):
         """
