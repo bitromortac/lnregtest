@@ -17,7 +17,9 @@ lnd_config_template = \
     "bitcoind.rpcuser=lnd\n" \
     "bitcoind.rpcpass=123456\n" \
     "bitcoind.zmqpubrawblock=tcp://127.0.0.1:28332\n" \
-    "bitcoind.zmqpubrawtx=tcp://127.0.0.1:28333"
+    "bitcoind.zmqpubrawtx=tcp://127.0.0.1:28333\n" \
+    "[protocol]\n" \
+    "protocol.wumbo-channels=true"
 
 bitcoind_config_template = \
     "txindex=1\n" \
