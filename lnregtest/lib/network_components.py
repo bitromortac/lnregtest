@@ -752,8 +752,8 @@ class LND(LightningDaemon):
         returncode, info = self.rpc(['getinfo'])
         return info
 
-    def getaddress(self):
-        returncode, address = self.rpc(['newaddress', 'p2wkh'])
+    def getaddress(self, address_type='p2wkh'):
+        returncode, address = self.rpc(['newaddress', address_type])
         return address['address']
 
     def _connect(self, pubkey, host):
