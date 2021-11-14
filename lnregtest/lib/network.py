@@ -545,6 +545,8 @@ class Network(object):
             logger.info("{} -> {} (channel #{})".format(
                 channel[0], channel[1], channel[2]))
 
+        return chan_infos
+
     def master_node_stop_and_start(self):
         self.master_node.stop()
         self.master_node.start(from_scratch=False)

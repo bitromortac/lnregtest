@@ -18,6 +18,10 @@ lnd_config_template = \
     "bitcoind.rpcpass=123456\n" \
     "bitcoind.zmqpubrawblock=tcp://127.0.0.1:28332\n" \
     "bitcoind.zmqpubrawtx=tcp://127.0.0.1:28333\n" \
+    "[routing]\n" \
+    "routing.strictgraphpruning=false\n" \
+    "[db]\n" \
+    "db.no-graph-cache=true\n" \
     "[protocol]\n" \
     "protocol.wumbo-channels=true"
 

@@ -54,7 +54,6 @@ class TestElectrum(unittest.TestCase):
         self.electrum.start()
         logger.info(self.electrum.getinfo())
 
-
     def tearDown(self) -> None:
         self.electrum.stop()
         self.electrumx.stop()
@@ -89,14 +88,6 @@ class TestElectrumMasterNode(unittest.TestCase):
                     }
                 },
                 "B": {
-                    "3": {
-                        "remote_name": "C",
-                        "capacity": 100000,
-                        "local_balance": 90950,
-                        "remote_balance": 0,
-                        "commit_fee": 9050,
-                        "initiator": True
-                    },
                     "1": {
                         "remote_name": "A",
                         "capacity": 4000000,
@@ -104,6 +95,14 @@ class TestElectrumMasterNode(unittest.TestCase):
                         "remote_balance": 2072684,
                         "commit_fee": 32580,
                         "initiator": False
+                    },
+                    "3": {
+                        "remote_name": "C",
+                        "capacity": 100000,
+                        "local_balance": 96530,
+                        "remote_balance": 0,
+                        "commit_fee": 3140,
+                        "initiator": True
                     }
                 },
                 "C": {
@@ -111,8 +110,8 @@ class TestElectrumMasterNode(unittest.TestCase):
                         "remote_name": "B",
                         "capacity": 100000,
                         "local_balance": 0,
-                        "remote_balance": 90950,
-                        "commit_fee": 9050,
+                        "remote_balance": 96530,
+                        "commit_fee": 3140,
                         "initiator": False
                     },
                     "2": {
@@ -157,10 +156,7 @@ class TestRunFromBackground(unittest.TestCase):
         $ lnregtestnet --nodedata_folder /path/to/lnregtestnet/test/test_data
         """
         testnet = Network(
-            network_definition_location='star_ring',
+            network_definition_location='star_ring_electrum',
             nodedata_folder=test_data_dir,
             from_scratch=True, node_limit='Z')
-        testnet.run_from_background()
-        # do tests
-        testnet.master_node_print_networkinfo()
-        testnet.master_node_graph_view()
+        testnet.run_nocleanup()

@@ -74,17 +74,17 @@ class TestBasicNetwork(unittest.TestCase):
                     "1": {
                         "remote_name": "C",
                         "capacity": 5000000,
-                        "local_balance": 4490950,
+                        "local_balance": 4496530,
                         "remote_balance": 500000,
-                        "commit_fee": 9050,
+                        "commit_fee": 2810,
                         "initiator": True
                     },
                     "4": {
                         "remote_name": "B",
                         "capacity": 4000000,
                         "local_balance": 400000,
-                        "remote_balance": 3590950,
-                        "commit_fee": 9050,
+                        "remote_balance": 3596530,
+                        "commit_fee": 2810,
                         "initiator": False
                     }
                 },
@@ -92,17 +92,17 @@ class TestBasicNetwork(unittest.TestCase):
                     "4": {
                         "remote_name": "A",
                         "capacity": 4000000,
-                        "local_balance": 3590950,
+                        "local_balance": 3596530,
                         "remote_balance": 400000,
-                        "commit_fee": 9050,
+                        "commit_fee": 2810,
                         "initiator": True
                     },
                     "5": {
                         "remote_name": "C",
                         "capacity": 10000000,
-                        "local_balance": 5040455,
+                        "local_balance": 5046035,
                         "remote_balance": 4950495,
-                        "commit_fee": 9050,
+                        "commit_fee": 2810,
                         "initiator": True
                     }
                 },
@@ -111,16 +111,16 @@ class TestBasicNetwork(unittest.TestCase):
                         "remote_name": "A",
                         "capacity": 5000000,
                         "local_balance": 500000,
-                        "remote_balance": 4490950,
-                        "commit_fee": 9050,
+                        "remote_balance": 4496530,
+                        "commit_fee": 2810,
                         "initiator": False
                     },
                     "5": {
                         "remote_name": "B",
                         "capacity": 10000000,
                         "local_balance": 4950495,
-                        "remote_balance": 5040455,
-                        "commit_fee": 9050,
+                        "remote_balance": 5046035,
+                        "commit_fee": 2810,
                         "initiator": False
                     }
                 }
@@ -153,56 +153,14 @@ class TestLNDMasterNode(unittest.TestCase):
     def tearDownClass(cls):
         cls.testnet.cleanup()
 
-    def test_network_view_master_node(self):
-        """
-        Test that the view of a single node (the master node A) is consistent.
-        """
-        networkinfo_is = self.testnet.master_node.getnetworkinfo()
-        logger.info(format_dict(networkinfo_is))
-        networkinfo_should = \
-            {
-                "graph_diameter": 0,
-                "avg_out_degree": 3.4285714285714284,
-                "max_out_degree": 6,
-                "num_nodes": 7,
-                "num_channels": 12,
-                "total_network_capacity": "87500000",
-                "avg_channel_size": 7291666.666666667,
-                "min_channel_size": "2500000",
-                "max_channel_size": "10000000",
-                "median_channel_size_sat": "8500000",
-                "num_zombie_chans": "0"
-            }
-        self.assertTrue(dict_comparison(
-            networkinfo_should, networkinfo_is, show_diff=True))
-
-    def test_fail_network_view_master_node(self):
-        """
-        Test that the view of the master node is inconsistent.
-        """
-        networkinfo_is = self.testnet.master_node.getnetworkinfo()
-        logger.info(format_dict(networkinfo_is))
-        networkinfo_should = \
-            {
-                "graph_diameter": 0,
-                "avg_out_degree": 3.4285714285714284,
-                "max_out_degree": 6,
-                "num_nodes": 7,
-                "num_channels": 11,
-                "total_network_capacity": "53247024",
-                "avg_channel_size": 4437252,
-                "min_channel_size": "2100000",
-                "max_channel_size": "6300000",
-                "median_channel_size_sat": "5049504",
-                "num_zombie_chans": "0"
-            }
-        self.assertFalse(dict_comparison(
-            networkinfo_should, networkinfo_is, show_diff=True))
+    def test_master_view(self):
+        chan_infos = self.testnet.master_node_graph_view()
+        self.assertEqual(12, len(chan_infos))
 
     def test_async_channel_open(self):
         """Tests the asyncio rpc api for channel creation."""
-        networkinfo_before = self.testnet.master_node.getnetworkinfo()
-        self.assertEqual(12, networkinfo_before['num_channels'])
+        channels_before = self.testnet.master_node.listchannels()
+        self.assertEqual(6, len(channels_before))
 
         # open channel with async method
         partner_pubkey = self.testnet.node_mapping['B']
@@ -213,10 +171,10 @@ class TestLNDMasterNode(unittest.TestCase):
         )
         asyncio.run(coro)
         self.testnet.bitcoind.mine_blocks(3)
-        self.testnet.master_node.wait_for_log("Broadcasting")
+        self.testnet.master_node.wait_for_log("HTLC manager started", offset=0)
 
-        networkinfo_after = self.testnet.master_node.getnetworkinfo()
-        self.assertEqual(13, networkinfo_after['num_channels'])
+        channels_after = self.testnet.master_node.listchannels()
+        self.assertEqual(7, len(channels_after))
 
 
 class TestRunFromBackground(unittest.TestCase):
