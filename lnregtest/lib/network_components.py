@@ -509,7 +509,7 @@ class LightningDaemon(ABC):
                     break
                 with self.logs_cond:
                     self.logs.append(str(line.rstrip()))
-                    self.logs_cond.notifyAll()
+                    self.logs_cond.notify_all()
         except ValueError:
             self.running = False
 
