@@ -93,6 +93,12 @@ Test if lnregest works
 -------------------------
 To run all tests, run `python3 -m unittest discover test` from the root folder.
 
+Running under Docker
+--------------------
+```
+$ docker build -t lnregtest:local .
+$ docker run --rm -it lnregtest:local python3 -m unittest discover test
+```
 
 Troubleshooting
 ---------------
