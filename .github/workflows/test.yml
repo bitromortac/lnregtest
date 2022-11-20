@@ -1,0 +1,22 @@
+# action.yml
+name: Test
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  itest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: build docker image
+        run: docker build -t lnregtest:latest .
+      - name: run tests
+        run: docker run -t lnregtest:latest python3 lnregtest.py -h
+
